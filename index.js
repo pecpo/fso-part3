@@ -3,9 +3,9 @@ const morgan = require("morgan");
 const app = express();
 const Person = require("./models/person");
 
+app.use(express.static("dist"));
 app.use(express.json());
 app.use(morgan("combined"));
-app.use(express.static("dist"));
 
 // let persons = [
 //   {
@@ -74,9 +74,9 @@ app.post("/api/persons", (request, response) => {
 app.delete("/api/persons/:id", (request, response) => {
   const id = request.params.id;
   // persons = persons.filter((person) => person.id !== id);
-  Person.deleteOne({ _id: id }).then(() => {
-    response.status(204).end();
-  });
+  Person.findByIdAndDelete(id)
+    .then((result) => response.status(204).end())
+    .catch((error) => next(error));
 });
 
 app.get("/info", (request, response) => {
@@ -85,6 +85,18 @@ app.get("/info", (request, response) => {
     <p>${new Date()}</p>`
   );
 });
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message);
+
+  if (error.name === "CastError") {
+    return response.status(400).send({ error: "malformatted id" });
+  }
+
+  next(error);
+};
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
